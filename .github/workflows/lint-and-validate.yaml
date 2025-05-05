@@ -1,0 +1,42 @@
+name: Lint & Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y yamllint curl
+
+    - name: Lint YAML files
+      run: yamllint .
+
+    - name: Validate Prometheus config
+      run: |
+        if [ -f prometheus/prometheus.yml ]; then
+          curl -LO https://github.com/prometheus/prometheus/releases/download/v2.51.2/prometheus-2.51.2.linux-amd64.tar.gz
+          tar xvf prometheus-*.tar.gz
+          ./prometheus-*/promtool check config prometheus/prometheus.yml
+        else
+          echo "No Prometheus config found"
+        fi
+
+    - name: Validate Alertmanager config
+      run: |
+        if [ -f alertmanager/alertmanager.yml ]; then
+          ./prometheus-*/promtool check config alertmanager/alertmanager.yml
+        else
+          echo "No Alertmanager config found"
+        fi
+
